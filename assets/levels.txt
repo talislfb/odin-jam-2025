@@ -1,11 +1,11 @@
-10 10
-uuuuuuuuuu
-ltttttttte
-ltttttttte
-ltttttttte
-fggggggggh
-gmmmmmmmm,
-gmmmmmmmm,
-assssssss.
-xxxxxxxxxx
-xxxxxxxxxx
+10 10 20
+12223bbbbb
+ltttttttt4
+ltttttttt5
+ltttttttt5
+fgggggggg5
+lmmm,cccc5
+lmmm,cccc5
+assssssss5
+awwwwwwwwd
+qppppppppe

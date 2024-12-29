@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:math"
+import "core:mem"
 import "core:os"
 import "core:strconv"
 import "core:strings"
@@ -25,13 +26,29 @@ TURRETS_HEIGHT :: 3
 MACHINES_WIDTH :: 8
 MACHINES_HEIGHT :: 4
 
-Level :: struct {
-	col:   int,
-	row:   int,
-	tiles: []string,
-}
-
 main :: proc() {
+
+	when ODIN_DEBUG {
+		track: mem.Tracking_Allocator
+		mem.tracking_allocator_init(&track, context.allocator)
+		context.allocator = mem.tracking_allocator(&track)
+
+		defer {
+			if len(track.allocation_map) > 0 {
+				fmt.eprintf("=== %v allocations not freed: ===\n", len(track.allocation_map))
+				for _, entry in track.allocation_map {
+					fmt.eprintf("- %v bytes @ %v\n", entry.size, entry.location)
+				}
+			}
+			if len(track.bad_free_array) > 0 {
+				fmt.eprintf("=== %v incorrect frees: ===\n", len(track.bad_free_array))
+				for entry in track.bad_free_array {
+					fmt.eprintf("- %p @ %v\n", entry.memory, entry.location)
+				}
+			}
+			mem.tracking_allocator_destroy(&track)
+		}
+	}
 
 	rl.SetTargetFPS(60)
 	currentMonitor := rl.GetCurrentMonitor()
@@ -42,53 +59,20 @@ main :: proc() {
 		"Area 53",
 	)
 
-	data, ok := os.read_entire_file_from_filename("assets/levels.txt")
-	if !ok {
-		fmt.eprintln("Error openning levels!")
-		return
-	}
-	defer delete(data)
-
-	fmt.printfln("Failing to convert (das): %v", strconv.atoi("das"))
-
-	l: Level
-
-	text := string(data)
-	fmt.printfln(text)
-	lines := strings.split_lines(text)
-	defer delete(lines)
-	i := 0
-	for i < len(lines) {
-		splits := strings.split(lines[i], string(" "))
-		i += 1
-		defer delete(splits)
-
-		// there's a new level
-		if len(splits) == 2 {
-			col := strconv.atoi(splits[0])
-			row := strconv.atoi(splits[1])
-			if col != 0 && row != 0 {
-				l.col = col
-				l.row = row
-				l.tiles = lines[i:i + l.row]
-				i += l.row
-			} else {
-				continue
-			}
-		}
-
-	}
-	fmt.print(l)
 
 	game := new(Game)
-	defer free(game)
+	defer {
+		unload_game(game)
+		free(game)
+	}
 
+	load_levels("assets/levels.txt", game)
 	init_game(game)
 	for !rl.WindowShouldClose() {
-		update_game(game, 0.0)
+		update_game(game, rl.GetFrameTime())
 
 		rl.BeginDrawing()
-		rl.ClearBackground({100, 150, 150, 255})
+		rl.ClearBackground({0, 0, 0, 255})
 
 		draw_game(game)
 		rl.EndDrawing()
